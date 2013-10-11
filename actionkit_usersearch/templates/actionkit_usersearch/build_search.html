@@ -223,7 +223,7 @@ console.log(anchor);
           <div><strong>Search for users where:</strong></div>
           <br/>
           {% with command="template" name="template:0" %}
-          {% include "_fields.html" %}
+          {% include "actionkit_usersearch/_fields.html" %}
           {% endwith %}
           <br /><br /><br />
           <a class="addSet" onclick="addSet('include', this); return false;"
@@ -468,7 +468,7 @@ console.log(anchor);
     <div><strong>Search for users where:</strong></div>
     <br/>
     {% with command="include" name="include:0" %}
-    {% include "_fields.html" %}
+    {% include "actionkit_usersearch/_fields.html" %}
     {% endwith %}
     <br /><br /><br />
     <a class="addSet" onclick="addSet('include', this); return false;"
