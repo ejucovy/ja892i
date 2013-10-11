@@ -1,4 +1,4 @@
-from actionkit.models import CoreUser
+from actionkit.models import *
 from django.conf import settings
 from django.http import HttpResponse
 from djangohelpers import rendered_with, allow_http
