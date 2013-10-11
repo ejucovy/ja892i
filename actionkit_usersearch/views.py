@@ -7,6 +7,102 @@ import json
 from actionkit_usersearch.models import SearchColumn
 
 @allow_http("GET")
+def campuses(request):
+    prefix = request.GET.get('q')
+    limit = request.GET.get('limit', '10')
+    try:
+        limit = int(limit)
+    except ValueError:
+        limit = 10
+    limit = clamp(limit, 1, 1000)
+    if prefix:
+        cursor = connections['ak'].cursor()
+        prefix = prefix + '%'
+        cursor.execute("SELECT distinct value FROM core_userfield "
+                       "WHERE name=\"campus\" and value LIKE %s ORDER BY value LIMIT %s",
+                       [prefix, limit])
+        values = [row[0] for row in cursor.fetchall()]
+        if not values:
+            prefix = '%' + prefix
+            cursor.execute("SELECT distinct value FROM core_userfield "
+                           "WHERE name=\"campus\" and value LIKE %s ORDER BY value LIMIT %s",
+                           [prefix, limit])
+            values = [row[0] for row in cursor.fetchall()]
+    else:
+        values = []
+
+    return HttpResponse(json.dumps(values), content_type='application/json')
+
+@allow_http("GET")
+def sources(request):
+    prefix = request.GET.get('q')
+    limit = request.GET.get('limit', '10')
+    try:
+        limit = int(limit)
+    except ValueError:
+        limit = 10
+    limit = clamp(limit, 1, 1000)
+    if prefix:
+        cursor = connections['ak'].cursor()
+        prefix = prefix + '%'
+        cursor.execute("SELECT distinct source FROM core_user "
+                       "WHERE source LIKE %s ORDER BY source LIMIT %s",
+                       [prefix, limit])
+        sources = [row[0] for row in cursor.fetchall()]
+    else:
+        sources = []
+    return HttpResponse(json.dumps(sources), content_type='application/json')
+
+@allow_http("GET")
+def countries(request):
+    countries = CoreUser.objects.using("ak").values_list("country", flat=True).distinct().order_by("country")
+    countries = [(i,i) for i in countries]
+    return HttpResponse(json.dumps(countries),
+                        content_type="application/json")
+
+@allow_http("GET")
+def regions(request):
+    countries = request.GET.getlist("country")
+    raw_regions = CoreUser.objects.using("ak").filter(
+        country__in=countries).values(
+        "country", "region").distinct().order_by("country", "region")
+    regions = {}
+    for region in raw_regions:
+        if region['country'] not in regions:
+            regions[region['country']] = []
+        regions[region['country']].append(region['region'])
+    return HttpResponse(json.dumps(regions), 
+                        content_type="application/json")
+
+@allow_http("GET")
+def states(request):
+    countries = request.GET.getlist("country")
+    raw_states = CoreUser.objects.using("ak").filter(
+        country__in=countries).values(
+        "country", "state").distinct().order_by("country", "state")
+    states = {}
+    for state in raw_states:
+        if state['country'] not in states:
+            states[state['country']] = []
+        states[state['country']].append(state['state'])
+    return HttpResponse(json.dumps(states), 
+                        content_type="application/json")
+
+@allow_http("GET")
+def cities(request):
+    cities = CoreUser.objects.using("ak").values_list("city", flat=True).distinct().order_by("city")
+    cities = [(i,i) for i in cities]
+    return HttpResponse(json.dumps(cities), 
+                        content_type="application/json")
+
+@allow_http("GET")
+def pages(request):
+    pages = CorePage.objects.using("ak").all().order_by("title")
+    pages = [(i.id, str(i)) for i in pages]
+    return HttpResponse(json.dumps(pages), 
+                        content_type="application/json")
+
+@allow_http("GET")
 @rendered_with("actionkit_usersearch/build_search.html")
 def search(request):
     column_options = SearchColumn.objects.all()
