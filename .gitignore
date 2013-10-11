@@ -1,0 +1,13 @@
+*.egg-info
+ve
+venv
+*~
+*pyc
+local_settings.py
+*.sqlite
+#*
+*#
+.#*
+collected_static
+django-oauth2-provider
+standalone-django-project

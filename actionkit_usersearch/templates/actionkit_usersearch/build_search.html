@@ -1,0 +1,511 @@
+{% extends "base.html" %}
+
+{% load url from future %}
+
+<html>
+<head>
+  {% block head %}
+  <script type="text/javascript" src="/static/chosen/chosen.jquery.js"></script>
+  <script type="text/javascript">
+  function addSet(setGroup, anchor) {
+    var container = $(anchor).closest(".and-group");
+console.log(anchor);
+    var children = container.find(".paramset");
+    var index = container.index(".and-group");
+    var options = children[0].innerHTML;
+    container.find(".includeSet").append("<br/><br/><br/><div class='addSet'><strong>And:</strong></div><br/>");
+    var wrapper = $("<div />").appendTo(container.find(".includeSet"));
+    $("<select />").attr("data-placeholder", "Choose a search parameter").addClass("paramset")
+       .attr("name", setGroup+":"+index)
+       .append(options)
+       .appendTo(wrapper)
+       .chosen();
+  };
+  function addSetOr(setGroup) {
+    var index = $(".and-group").length;
+    var wrapper = $("<div />").addClass("and-group").html($("#template_and-group").html());
+    wrapper.insertAfter(".and-group:last");
+    wrapper.find("select.paramset")
+       .attr("name", setGroup+":"+index)
+       .chosen();
+    $("<div class='addSetOr'><strong>Or:</strong></div><br/>").insertBefore(wrapper);
+  };
+  </script>
+  <link rel="stylesheet" type="text/css" href="/static/chosen/chosen.css" />
+  <link rel="stylesheet" type="text/css" 
+        href="/static/jquery/jquery.autocomplete.css" />
+  <link rel="stylesheet" type="text/css"
+        href="/static/jquery-ui-1.10.2.custom.min.css" />
+  <script type="text/javascript" src="/static/jquery/jquery.autocomplete.js"></script>
+  <link rel="stylesheet" type="text/css" href="/static/chosen/chosen.css" />
+  <script type="text/javascript">
+    $(window).load(function() {
+      $(".includeSet.include select.paramset").chosen();
+
+      $("select.paramset").live("change", function() {
+
+        // Make sure no datepicker ghosts remain behind after their inputs have been removed/hidden
+        $(".hasDatepicker").datepicker("hide");
+
+        var that = $(this).parent();
+        that.find(".searchParam").parent(".searchParamContainer").remove();
+        var val = $(this).val();
+        var newEl = $("#template_" + val).clone();
+        newEl.removeAttr("id").addClass("searchParam");
+        var newElWrapper = $("<div>").addClass("searchParamContainer");
+        if (newEl.hasClass('no-choice')) {
+          var hiddenInput = newEl.find('input[type=hidden]');
+          hiddenInput.attr('name', $(this).attr('name') + "_" + newEl.attr("name"));
+        } else {
+          var isToggleElt = $("#template_istoggle").clone();
+          isToggleElt.removeAttr("id");
+          isToggleElt.show();
+          isToggleElt.appendTo(newElWrapper);
+          isToggleElt.attr("name", newEl.attr("name") + "_" + isToggleElt.attr("name"));
+          newEl.attr("name", $(this).attr("name") + "_" + newEl.attr("name"));
+        }
+        newEl.appendTo(newElWrapper);
+        newEl.show();
+        newElWrapper.appendTo(that);
+        if( newEl[0].tagName == "SELECT" ) {
+          if( newEl.data("filtertype") == "state" ) {
+            newEl.bind("akcrm:findfields", function() {
+              var data = newEl.closest(".and-group").find("select[name$=_country]").data("available_states");
+              newEl.html("<option value=''></option>");
+              $.each(data, function(i, n) { 
+                var group = $("<optgroup>").attr("label", i);
+                 $.each(n, function(j, m) {
+                  $("<option>").attr("value", m).text(m).appendTo(group);
+                });
+                group.appendTo(newEl);
+              });
+              newEl.trigger("liszt:updated");
+            });
+            newEl.chosen();
+            newEl.trigger("akcrm:findfields");
+          } else if( newEl.data("filtertype") == "country" ) {
+            newEl.chosen().change(function() {
+              var countries = newEl.val();
+              if( countries.length ) {
+                newEl.closest(".and-group").find("option[value=state]").removeAttr("disabled");
+                var country_string = "country=" + countries.join("&country=");
+                $.getJSON("{% url 'choices_states' %}?" + country_string, 
+                  function(data) {
+                    newEl.data("available_states", data);
+                    newEl.closest(".and-group").find("select[name$=_state]").trigger("akcrm:findfields");
+                });
+              }
+            });
+          } else {
+            newEl.chosen();
+          }
+        } else if (newEl.attr('placeholder') === 'MM/DD/YYYY') {
+          newEl.datepicker();
+        } else {
+          var autocompleteUrl = newEl.attr('autocomplete');
+          if (autocompleteUrl) {
+            newEl.autocomplete({
+                url: autocompleteUrl,
+                remoteDataType: 'json',
+                minLength: 3,
+                useCache: false
+                });
+          }
+        }
+	if( newEl.data("paired-with") ) {
+	  var pairedEl = $("#template_" + newEl.data("paired-with"));
+	  if( pairedEl ) {
+            pairedEl = pairedEl.clone();
+            pairedEl.attr("name", $(this).attr("name") + "_" + pairedEl.attr("name"));
+
+            pairedEl.removeAttr("id");
+            newElWrapper.append(pairedEl);
+            if (pairedEl.attr('placeholder') === 'MM/DD/YYYY') {
+              pairedEl.datepicker();
+            } 
+          }
+        } 
+      });
+    });
+  </script>
+  <style type="text/css">
+    .chzn-choices .search-choice span, .chzn-container .chzn-results li {
+      line-height: 150% !important;
+    }
+    .and-group {
+      border: 1px solid gray;
+      border-radius: 5px;
+      padding: 0 10px 8px 10px;
+      margin-bottom: 15px;
+    }
+    .includeSet .chzn-container, .searchParamContainer {
+      float: left;
+      display: inline;
+      padding-right: 5px;
+    }
+    .searchParamContainer .chzn-choices {
+      border-radius: 2px;
+    }
+    .addSet, .addSetOr {
+      display: block;
+      clear: both;
+    }
+    li.bsmListItem {
+      border-radius: 5px;
+      margin: 2px 0;
+    }
+    a.bsmListItemRemove {
+      color: #C95A00;
+      font-size: 0.75em;
+    }
+    div.includeSet {
+      background-color: #EEE;
+      border-radius: 9px;
+      clear: both;
+    }
+    div.input {
+      margin-left: 0;
+    }
+    label {
+      padding-right: 5px;
+      width: auto;
+    }
+  </style>
+  {% endblock %}
+</head>
+<body>
+{% block nav %}
+<li class="active"><a href="/">New Search</a></li>
+{% if request.PERMISSIONS.add_allowed_tags %}
+<li><a href="{% url 'allowed_tags' %}">Manage Tags</a></li>
+{% endif %}
+{% if request.PERMISSIONS.search_saved %}
+<li><a href="{% url 'search_saved' request.user.username %}">Saved Searches</a></li>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% if homepagehtml %}
+<div id="homepage_html">
+  {{ homepagehtml|safe }}
+</div>
+{% endif %}
+
+<h1>Actionkit User Search</h1>
+
+<div class="span12">
+<form action="/search/">
+  <div style="clear: both; padding-bottom: 15px;">
+    <input type="submit" class="btn" name="search_submit" value="Search for entries" />
+  </div>
+  <fieldset>
+    <div class="clearfix">
+      <div style="float: left; padding-right: 15px;">
+        <div class="input">
+          <label for="user_name">Search by name:</label>
+          <input type="text" name="user_name" />
+        </div>
+      </div>
+      <div style="float: left">
+        <div class="input">
+          <label for="user_email">And/or email:</label>
+          <input type="text" name="user_email" />
+        </div>
+      </div>
+    </div>
+    <div class="clearfix">
+
+      <div style="display:none" id="searchTemplates">
+
+        <div id="template_and-group">
+          <br/>
+          <div><strong>Search for users where:</strong></div>
+          <br/>
+          {% with command="template" name="template:0" %}
+          {% include "_fields.html" %}
+          {% endwith %}
+          <br /><br /><br />
+          <a class="addSet" onclick="addSet('include', this); return false;"
+             href="#">And...</a>
+        </div>
+
+        <select id="template_country"
+                name="country" data-filtertype="country" multiple="multiple">
+          <option value=""></option>
+          {% for country in countries %}
+          <option value="{{ country }}">{{ country }}</option>
+          {% endfor %}
+        </select>
+        <select id="template_state"
+                name="state" data-filtertype="state" multiple="multiple">
+    <option value=""></option>
+  </select>
+
+  <select id="template_city"
+    name="city" multiple="multiple">
+    <option value=""></option>
+  </select>
+
+  <select id="template_action"
+    name="action" multiple="multiple">
+    <option value=""></option>
+    {% for item in pages %}
+    <option value="{{ item.id }}">
+      {{ item }}
+    </option>
+    {% endfor %}
+  </select>
+
+  <input
+     id="template_source"
+     type="text"
+     name="source"
+     multiple="multiple"
+     autocomplete="{% url 'autocomplete_sources' %}"
+     />
+
+  <select id="template_tag"
+    name="tag"
+    data-placeholder="Choose one or more tags"
+    multiple="multiple">
+    {% for item in tags %}
+    <option value="{{item.id}}">
+      {{item.name}}
+    </option>
+    {% endfor %}
+  </select>
+
+  <input
+     id="template_campus"
+     type="text"
+     name="campus"
+     multiple="multiple"
+     autocomplete="{% url 'autocomplete_campuses' %}"
+     />
+
+  <select id="template_skills"
+    name="skills"
+    multiple="multiple">
+    {% for item in skills %}
+    <option value="{{item}}">
+      {{item}}
+    </option>
+    {% endfor %}
+  </select>
+
+  <select id="template_engagement_level"
+    name="engagement_level"
+    multiple="multiple">
+    {% for item in engagement_levels %}
+    <option value="{{item}}">
+      {{item}}
+    </option>
+    {% endfor %}
+  </select>
+
+  <select id="template_affiliation"
+    name="affiliation"
+    multiple="multiple">
+    {% for item in affiliations %}
+    <option value="{{item}}">
+      {{item}}
+    </option>
+    {% endfor %}
+  </select>
+
+  <div id="template_student"
+    name="student"
+    class="no-choice">
+    <label style="margin-left: 0.5em">Searching for students</label>
+    <input type="hidden" name="student" value="yes" />
+  </div>
+
+  <select id="template_language"
+    name="language"
+    multiple="multiple">
+    {% for lang in languages %}
+    <option value="{{lang.id}}">
+      {{lang.name}}
+    </option>
+    {% endfor %}
+  </select>
+
+  <input
+     type="text"
+     id="template_created_before"
+     name="created_before"
+     placeholder="MM/DD/YYYY"
+     />
+
+  <input
+     type="text"
+     id="template_created_after"
+     name="created_after"
+     placeholder="MM/DD/YYYY"
+     />
+
+  <input
+     type="text"
+     id="template_emails_opened"
+     name="emails_opened"
+     data-paired-with="emails_opened__since"
+     />
+
+  <input
+     type="text"
+     id="template_emails_opened__since"
+     name="emails_opened__since"
+     placeholder="MM/DD/YYYY"
+     />
+
+  <input
+     type="text"
+     id="template_contacted_since"
+     name="contacted_since"
+     data-paired-with="contacted_since__contacted_by"
+     placeholder="MM/DD/YYYY"
+     />
+
+  <input type="text"
+	 id="template_contacted_since__contacted_by"
+	 name="contacted_since__contacted_by"
+	 placeholder="Contacted by:"
+	 />
+
+  <input
+     type="text"
+     id="template_contacted_by"
+     name="contacted_by"
+     data-paired-with="contacted_by__contacted_since"
+     placeholder="Contacted by:"
+     />
+
+  <input type="text"
+     id="template_contacted_by__contacted_since"
+     name="contacted_by__contacted_since"
+     placeholder="MM/DD/YYYY"
+     />
+
+  <input
+     type="text"
+     id="template_more_actions"
+     name="more_actions"
+     data-paired-with="more_actions__since"
+     placeholder="More than this number of actions"
+     />
+
+  <input
+     type="text"
+     id="template_more_actions__since"
+     name="more_actions__since"
+     placeholder="MM/DD/YYYY"
+     />
+
+  <input
+     type="text"
+     id="template_donated_more"
+     name="donated_more"
+     data-paired-with="donated_more__since"
+     placeholder="Donated more than"
+     />
+
+  <input
+     type="text"
+     id="template_donated_more__since"
+     name="donated_more__since"
+     placeholder="MM/DD/YYYY"
+     />
+
+  <input
+     type="text"
+     id="template_donated_times"
+     name="donated_times"
+     data-paired-with="donated_times__since"
+     placeholder="Donated more times than"
+     />
+
+  <input
+     type="text"
+     id="template_donated_times__since"
+     name="donated_times__since"
+     placeholder="MM/DD/YYYY"
+     />
+
+  <input
+     id="template_zipcode"
+     type="text"
+     name="zipcode"
+     data-paired-with="zipcode__distance"
+     placeholder="Zip Code"
+     />
+
+  <input
+     id="template_zipcode__distance"
+     type="text"
+     name="zipcode__distance"
+     style="margin-left: 10px"
+     placeholder="Distance in miles"
+     />
+
+  <select
+     id="template_istoggle"
+     type="select"
+     name="istoggle"
+     style="float: left; width: 75px; margin-right: 5px"
+     >
+     <option value="1">Is</option>
+     <option value="0">Is Not</option>
+   </select>
+
+
+      </div>
+    </div>
+  </fieldset>
+
+  <div class="and-group">
+    <br/>
+    <div><strong>Search for users where:</strong></div>
+    <br/>
+    {% with command="include" name="include:0" %}
+    {% include "_fields.html" %}
+    {% endwith %}
+    <br /><br /><br />
+    <a class="addSet" onclick="addSet('include', this); return false;"
+       href="#">And...</a>
+  </div>
+
+  <a class="addSetOr" onclick="addSetOr('include'); return false;"
+     href="#">Or...</a>
+
+  <br />
+
+  <h2>Include Extra Columns</h2>
+  {% for column in column_options %}
+  <div>
+    <label for="column_{{ column.name }}" class="checkbox inline">
+      <input type="checkbox" name="column" value="{{ column.name }}" />
+      {{ column.display_name|default:column.name }}
+    </label>
+  </div>
+  {% endfor %}
+
+  <br />
+  <div style="clear: both;">
+    <label>
+      <input style="display: inline-block;" type="checkbox" name="subscription_all_users" />
+      Include non-subscribed users
+    </label>
+    <input type="submit" class="btn" name="search_submit" value="Search for entries" />
+  </div>
+
+</form>
+</div>
+<br/><br/><br/><br/>
+  <script type="text/javascript" src="/static/jquery/jquery.autocomplete.js"></script>
+  <script type="text/javascript" src="/static/jquery-ui-1.10.2.custom.min.js"></script>
+
+{% endblock %}
+
+</body>
+</html>
