@@ -151,7 +151,7 @@ def make_more_actions_since_query(users, query_data, values, search_on, extra_da
     human_query = 'more than %s actions' % num_actions
     if 'since' in extra_data:
         since = dateutil.parser.parse(extra_data['since'])
-        users = users.filter(actions__created_at__gte=since)
+        users = users.filter(action__created_at__gte=since)
         human_query += ' since %s' % extra_data['since']
     users = users.annotate(num_actions=Count('actions', distinct=True))
     if extra_data.get('istoggle', True):
@@ -214,13 +214,13 @@ QUERIES = {
         'query': "city",
         },
     'action': {
-        'query': "actions__page__id",
+        'query': "action__page__id",
         },
     'source': {
         'query': "source",
         },
     'tag': {
-        'query': "actions__page__pagetags__tag__id",
+        'query': "action__page__pagetags__tag__id",
         },
     'campus': {
         'query': "fields__value",
