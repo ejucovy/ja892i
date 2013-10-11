@@ -18,6 +18,7 @@ setup(name='actionkit-usersearch',
       include_package_data=True,
       zip_safe=False,
       install_requires=[
+        "python-dateutils",
         "djangohelpers",
         "django-actionkit-client",
         "zope.dottedname",

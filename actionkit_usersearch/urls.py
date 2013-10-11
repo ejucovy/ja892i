@@ -6,6 +6,11 @@ urlpatterns = patterns(
         'search',
         name='usersearch_search'),
 
+    url('^new/$',
+        'create_report',
+        name='usersearch_create_report'),
+
+
     url(r'^autocomplete/sources/$', 'sources', name='autocomplete_sources'),
     url(r'^autocomplete/campuses/$', 'campuses', name='autocomplete_campuses'),
 

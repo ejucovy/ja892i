@@ -195,7 +195,8 @@ console.log(anchor);
 <h1>Actionkit User Search</h1>
 
 <div class="span12">
-<form action="/search/">
+<form action="{% url 'usersearch_create_report' %}" method="POST">
+  {% csrf_token %}
   <div style="clear: both; padding-bottom: 15px;">
     <input type="submit" class="btn" name="search_submit" value="Search for entries" />
   </div>

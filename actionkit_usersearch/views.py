@@ -107,6 +107,7 @@ def pages(request):
 def search(request):
     column_options = SearchColumn.objects.all()
 
+    """
     tags = CoreTag.objects.using("ak").all().order_by("name")
     countries = CoreUser.objects.using("ak").values_list(
             "country", flat=True).distinct().order_by("country")
@@ -129,6 +130,7 @@ def search(request):
 
     languages = CoreLanguage.objects.using(
             "ak").all().distinct().order_by("name")
+            """
 
     fields = {
         'Location':
@@ -162,4 +164,22 @@ def search(request):
 
     return locals()
 
+from actionkit_usersearch.search_functions import (build_query, 
+                                                   _search2)
+
+@allow_http("POST")
+def create_report(request):
+    # @@TODO
+    """
+    if request.GET.get("count_submit"):
+        resp = redirect("search_count")
+        resp['Location'] += "%s" % qsify(request.GET)
+        return resp
+        """
+
+    query = build_query(request.body)
+    report = _search2(request, query)
+
+    return HttpResponse("If all goes well, an email will be sent from 'ActionKit Reports' to %s shortly.  The subject of the email will be '%s' (sorry!)"  %(
+            request.user.email, report[1]))
 
