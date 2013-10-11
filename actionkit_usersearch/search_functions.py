@@ -8,8 +8,11 @@ from django.template.defaultfilters import slugify
 import hashlib
 import re
 
-from actionkit_usersearch.models import SearchColumn
 from actionkit_usersearch import sql
+from actionkit_usersearch.models import SearchColumn
+from actionkit_usersearch.utils import latlon_bbox
+from actionkit_usersearch.utils import zipcode_to_latlon
+
 
 def make_default_user_query(users, query_data, values, search_on, extra_data={}):
     """
