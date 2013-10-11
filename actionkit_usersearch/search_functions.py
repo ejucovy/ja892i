@@ -153,7 +153,7 @@ def make_more_actions_since_query(users, query_data, values, search_on, extra_da
         since = dateutil.parser.parse(extra_data['since'])
         users = users.filter(action__created_at__gte=since)
         human_query += ' since %s' % extra_data['since']
-    users = users.annotate(num_actions=Count('actions', distinct=True))
+    users = users.annotate(num_actions=Count('action', distinct=True))
     if extra_data.get('istoggle', True):
         users = users.filter(num_actions__gt=num_actions)
     else:
